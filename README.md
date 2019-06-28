@@ -1,4 +1,4 @@
-# Phase-shifting method
+# phase-shifting
 This repository provides an implementation of robust 3-step phase-shifting method combined with graycode patterns.
 
 ## What is phase-shifting method ?
@@ -34,5 +34,45 @@ The coordinate of corresponding display pixel for each camera pixels are estimat
 4. Compute the coordinate of corresponding display pixel.
     * Phase is the value unwrapped from S1.
     * Global position is computed using the phase, phase difference and graycode coordinate complementarily.
+
+## How to use
+
+### 1. Generate patterns
+
+You can generate pattern images by the following command.
+
+```sh
+python3 ./phase_shifting.py gen <display_width> <display_height> <step> <output_dir>
+
+# example
+python3 ./phase_shifting.py gen 1920 1080 400 ./patterns
+```
+
+This command saves pattern images (`pat00.png`~`patXX.png`) and a config file (`config.xml`) into the specified directory.
+
+### 2. Gamma calibration
+
+Before capture images, you have to set or calibrate gamma values of your display and camera.
+The phase-shifting method requires that the input value to the display and the output value from the camera are linear.
+However, most of imaging and display devices transform input values based on the gamma value.
+Thus, you have to correct it by estimating the gamma value or creating look-up table.
+Or, if your devices are gamma adjustable, set the gamma value to 1.0.
+
+### 3. Capture displayed patterns
+
+Display generated patterns on your display and capture it by your camera one by one.
+Captured images must be saved as `xxxx00.png`~`xxxxXX.png` in a single directory.
+
+### 4. Decode patterns
+
+You can decode captured images by the following command.
+
+```sh
+python3 ./phase_shifting.py dec <input_prefix> <config_path> <output_path> [-black_thr BLACK_THR] [-white_thr WHITE_THR] [-filter_size FILTER_SIZE]
+
+# sample
+python3 ./phase_shifting.py dec ./captured/pat ./patterns/config.xml ./captured
+```
+
 
 

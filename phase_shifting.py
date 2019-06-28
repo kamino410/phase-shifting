@@ -118,9 +118,9 @@ def decode(args):
     CAM_HEIGHT = white.shape[0]
 
     def decode_ps(pimgs):
-        pimg1 = pimgs[0].astype(np.float64)
-        pimg2 = pimgs[1].astype(np.float64)
-        pimg3 = pimgs[2].astype(np.float64)
+        pimg1 = pimgs[0].astype(np.float32)
+        pimg2 = pimgs[1].astype(np.float32)
+        pimg3 = pimgs[2].astype(np.float32)
         return np.arctan2(
             np.sqrt(3)*(pimg1-pimg3), 2*pimg2-pimg1-pimg3)
 
@@ -198,8 +198,7 @@ def decode(args):
 
     print('Decoding each pixels ...')
     viz = np.zeros((CAM_HEIGHT, CAM_WIDTH, 3), np.uint8)
-    res_x = np.zeros((CAM_HEIGHT, CAM_WIDTH), np.float64)
-    res_y = np.zeros((CAM_HEIGHT, CAM_WIDTH), np.float64)
+    res_list = []
     for y in range(CAM_HEIGHT):
         for x in range(CAM_WIDTH):
             if mask[y, x] != 0:
@@ -207,12 +206,18 @@ def decode(args):
                     gc_map[y, x, 0], ps_map_x1[y, x], ps_map_x2[y, x])
                 est_y = decode_pixel(
                     gc_map[y, x, 1], ps_map_y1[y, x], ps_map_y2[y, x])
-
                 viz[y, x, :] = (est_x, est_y, 128)
-                res_x[y, x] = est_x
-                res_y[y, x] = est_y
+                res_list.append((y, x, est_y, est_x))
 
+    print('Exporting result ...')
     cv2.imwrite(OUTPUTDIR+'/vizualized.png', viz)
+    with open(OUTPUTDIR+'/camera2display.csv', mode='w') as f:
+        f.write('camera_y, camera_x, display_y, display_x')
+        for (cam_y, cam_x, disp_y, disp_x) in res_list:
+            f.write(str(cam_y) + ', ' + str(cam_x) +
+                    ', ' + str(disp_y) + ', ' + str(disp_x) + '\n')
+
+    print('Done')
 
     # data = []
     # xs = np.array(range(CAM_WIDTH))
