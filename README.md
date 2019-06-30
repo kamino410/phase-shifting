@@ -74,5 +74,13 @@ python3 ./phase_shifting.py dec <input_prefix> <config_path> <output_path> [-bla
 python3 ./phase_shifting.py dec ./captured/pat ./patterns/config.xml ./captured
 ```
 
+This command saves the following files.
 
+1. Visualized image (`visualized.png`)
+    * B : decoded x coordinate of display pixel
+    * G : decoded y coordinate of display pixel
+    * R : 128 if decoded successfully
+    * The colors are folded back at every 256 pixels
+2. List of decoded coordinates (`camera2display.csv`)
+    * `camera_y, camera_x, display_y, display_x`
 
