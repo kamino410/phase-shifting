@@ -117,6 +117,8 @@ def decode(args):
     CAM_WIDTH = white.shape[1]
     CAM_HEIGHT = white.shape[0]
 
+    print('Decoding images ...')
+
     def decode_ps(pimgs):
         pimg1 = pimgs[0].astype(np.float32)
         pimg2 = pimgs[1].astype(np.float32)
@@ -241,7 +243,7 @@ def main():
     parser_gen.add_argument('height', type=int,
                             help='display height [pix]')
     parser_gen.add_argument(
-        'step', type=int, help='block size of graycode [pix]')
+        'step', type=int, help='2 blocks size of graycode [pix]')
     parser_gen.add_argument('output_dir', help='path to output files')
     parser_gen.set_defaults(func=generate)
 
