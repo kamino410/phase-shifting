@@ -1,6 +1,8 @@
 # phase-shifting
 This repository provides an implementation of robust 3-step phase-shifting method combined with graycode patterns.
 
+![](./sample_data/object2/pat00.png)
+
 ## What is phase-shifting method ?
 
 Phase-shifting method, also called fringe patterns or sinusoidal patterns, is a kind of structured light pattern used for display-camera systems.
@@ -118,4 +120,6 @@ This command saves following 2 files in the specified directory.
     * The coordinate values are folded back at every 256 pixels
 2. List of decoded coordinates (`camera2display.csv`)
     * `camera_y, camera_x, display_y, display_x`
+
+![](./sample_data/object2/vizualized.png)
 
