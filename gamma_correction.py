@@ -9,8 +9,11 @@ import glob
 
 import cv2
 import numpy as np
-from scipy.optimize import line_search
+from scipy.optimize import fmin, brent
 import argparse
+
+import plotly.offline as po
+import plotly.graph_objs as go
 
 
 def generate(args):
@@ -20,10 +23,10 @@ def generate(args):
     GAMMA_P2 = args.gamma_p2
     STEP = args.step
     PHSSTEP = int(WIDTH/8)
-    OUTDIR = args.output_dir
+    OUTPUTDIR = args.output_dir
 
-    if not os.path.exists(OUTDIR):
-        os.mkdir(OUTDIR)
+    if not os.path.exists(OUTPUTDIR):
+        os.mkdir(OUTPUTDIR)
 
     imgs = []
 
@@ -70,10 +73,10 @@ def generate(args):
     imgs.append(np.zeros((HEIGHT, WIDTH), np.uint8))     # black
 
     for i, img in enumerate(imgs):
-        cv2.imwrite(OUTDIR+'/pat'+str(i).zfill(2)+'.png', img)
+        cv2.imwrite(OUTPUTDIR+'/pat'+str(i).zfill(2)+'.png', img)
 
     print('Saving config file ...')
-    fs = cv2.FileStorage(OUTDIR+'/config.xml', cv2.FILE_STORAGE_WRITE)
+    fs = cv2.FileStorage(OUTPUTDIR+'/config.xml', cv2.FILE_STORAGE_WRITE)
     fs.write('disp_width', WIDTH)
     fs.write('disp_height', HEIGHT)
     fs.write('gamma_p1', GAMMA_P1)
@@ -88,10 +91,6 @@ def decode(args):
     BLACKTHR = args.black_thr
     WHITETHR = args.white_thr
     INPUTPRE = args.input_prefix
-    OUTDIR = args.output_dir
-
-    if not os.path.exists(OUTDIR):
-        os.mkdir(OUTDIR)
 
     fs = cv2.FileStorage(args.config_file, cv2.FILE_STORAGE_READ)
     DISP_WIDTH = int(fs.getNode('disp_width').real())
@@ -133,6 +132,7 @@ def decode(args):
 
     print('Decoding graycode ...')
     gc_map = np.zeros((CAM_HEIGHT, CAM_WIDTH, 2), np.int16)
+    viz = np.zeros((CAM_HEIGHT, CAM_WIDTH, 3), np.uint8)
     mask = np.zeros((CAM_HEIGHT, CAM_WIDTH), np.uint8)
     target_map_x = np.zeros((CAM_HEIGHT, CAM_WIDTH), np.float32)
     target_map_y = np.zeros((CAM_HEIGHT, CAM_WIDTH), np.float32)
@@ -147,7 +147,12 @@ def decode(args):
                 gc_map[y, x, :] = pos
                 target_map_x[y, x] = angle_vel*pos[0]
                 target_map_y[y, x] = angle_vel*pos[1]
-                mask[y, x] = 255
+                viz[y, x, 0] = pos[0]
+                viz[y, x, 1] = pos[1]
+                viz[y, x, 2] = 128
+                mask[y, x] = 1
+
+    # cv2.imwrite('viz.png', viz)
 
     def decode_ps(pimgs, gamma=1.0):
         pimg1 = (pimgs[0].astype(np.float32)/255)**gamma
@@ -156,35 +161,23 @@ def decode(args):
         return np.arctan2(
             np.sqrt(3)*(pimg1-pimg3), 2*pimg2-pimg1-pimg3)
 
-    def res_func(xs, tx, ty, imgsx, imgsy):
-        dx = decode_ps(imgsx, xs[0])
-        dy = decode_ps(imgsy, xs[0])
+    def res_func(xs, tx, ty, imgsx, imgsy, mask):
+        dx = decode_ps(imgsx, xs)*mask
+        dy = decode_ps(imgsy, xs)*mask
         dif = (dx-tx+np.pi) % (2*np.pi) - np.pi
         dif += (dy-ty+np.pi) % (2*np.pi) - np.pi
-        dif = dif**2
-        return np.sum(dif)
-
-    def dif_func(xs, tx, ty, imgsx, imgsy):
-        eps = 1e-5
-        return (res_func(xs+np.array([eps]), tx, ty, imgsx, imgsy) - res_func(xs, tx, ty, imgsx, imgsy))/eps
+        res = np.sum(dif**2)
+        return res
 
     print('Estimating gamma1-dash ...')
-    x0 = 1.0
-    sdir = 1.0 if dif_func([x0], target_map_x, target_map_y,
-                           ps_imgs[0:3], ps_imgs[6:9]) < 0 else -1.0
-    res = line_search(res_func, dif_func, np.array([x0]), np.array([sdir]), args=(
-        target_map_x, target_map_y, ps_imgs[0:3], ps_imgs[6:9]))
-    gamma1d = x0 + sdir*res[0]
-    print(' ', gamma1d, ', residual :', res[3])
+    gamma1d = brent(res_func, brack=(0, 3), args=(
+        target_map_x, target_map_y, ps_imgs[0:3], ps_imgs[6:9], mask))
+    print(' ', gamma1d)
 
     print('Estimating gamma2-dash ...')
-    x0 = 1.0
-    sdir = 1.0 if dif_func([x0], target_map_x, target_map_y,
-                           ps_imgs[3:6], ps_imgs[9:12]) < 0 else -1.0
-    res = line_search(res_func, dif_func, np.array([x0]), np.array([sdir]), args=(
-        target_map_x, target_map_y, ps_imgs[3:6], ps_imgs[9:12]))
-    gamma2d = x0 + sdir*res[0]
-    print(' ', gamma2d, ', residual :', res[3])
+    gamma2d = brent(res_func, brack=(0, 3), args=(
+        target_map_x, target_map_y, ps_imgs[3:6], ps_imgs[9:12], mask))
+    print(' ', gamma2d)
 
     gamma_a = (GAMMA_P1 - GAMMA_P2)/(gamma1d - gamma2d)
     gamma_b = (GAMMA_P1*gamma2d - gamma1d*GAMMA_P2)/(GAMMA_P1 - GAMMA_P2)
@@ -224,9 +217,8 @@ def main():
     parser_dec.add_argument(
         'input_prefix', help='prefix of path to captured images')
     parser_dec.add_argument('config_file', help='path to config.xml')
-    parser_dec.add_argument('output_dir', help='path to output files')
-    parser_dec.add_argument('-black_thr', type=int, default=5, help='')
-    parser_dec.add_argument('-white_thr', type=int, default=40, help='')
+    parser_dec.add_argument('-black_thr', type=int, default=40, help='')
+    parser_dec.add_argument('-white_thr', type=int, default=5, help='')
     parser_dec.set_defaults(func=decode)
 
     args = parser.parse_args()

@@ -18,11 +18,12 @@ def generate(args):
     WIDTH = args.width
     HEIGHT = args.height
     STEP = args.step
+    GAMMA = args.gamma
     GC_STEP = int(STEP/2)
-    OUTDIR = args.output_dir
+    OUTPUTDIR = args.output_dir
 
-    if not os.path.exists(OUTDIR):
-        os.mkdir(OUTDIR)
+    if not os.path.exists(OUTPUTDIR):
+        os.mkdir(OUTPUTDIR)
 
     imgs = []
 
@@ -31,7 +32,9 @@ def generate(args):
     xs = np.array(range(WIDTH))
     for i in range(1, 3):
         for phs in range(1, 4):
-            vec = 128 + 127*np.cos(xs*angle_vel[i-1] + np.pi*(phs-2)*2/3)
+            vec = 0.5*(np.cos(xs*angle_vel[i-1] + np.pi*(phs-2)*2/3)+1)
+            vec = 255*(vec**GAMMA)
+            vec = np.round(vec)
             img = np.zeros((HEIGHT, WIDTH), np.uint8)
             for y in range(HEIGHT):
                 img[y, :] = vec
@@ -40,7 +43,9 @@ def generate(args):
     ys = np.array(range(HEIGHT))
     for i in range(1, 3):
         for phs in range(1, 4):
-            vec = 128 + 127*np.cos(ys*angle_vel[i-1] + np.pi*(phs-2)*2/3)
+            vec = 0.5*(np.cos(ys*angle_vel[i-1] + np.pi*(phs-2)*2/3)+1)
+            vec = 255*(vec**GAMMA)
+            vec = np.round(vec)
             img = np.zeros((HEIGHT, WIDTH), np.uint8)
             for x in range(WIDTH):
                 img[:, x] = vec
@@ -62,10 +67,10 @@ def generate(args):
     imgs.append(np.zeros((HEIGHT, WIDTH), np.uint8))     # black
 
     for i, img in enumerate(imgs):
-        cv2.imwrite(OUTDIR+'/pat'+str(i).zfill(2)+'.png', img)
+        cv2.imwrite(OUTPUTDIR+'/pat'+str(i).zfill(2)+'.png', img)
 
     print('Saving config file ...')
-    fs = cv2.FileStorage(OUTDIR+'/config.xml', cv2.FILE_STORAGE_WRITE)
+    fs = cv2.FileStorage(OUTPUTDIR+'/config.xml', cv2.FILE_STORAGE_WRITE)
     fs.write('disp_width', WIDTH)
     fs.write('disp_height', HEIGHT)
     fs.write('step', STEP)
@@ -212,22 +217,16 @@ def decode(args):
                 res_list.append((y, x, est_y, est_x))
 
     print('Exporting result ...')
+    if not os.path.exists(OUTPUTDIR):
+        os.mkdir(OUTPUTDIR)
     cv2.imwrite(OUTPUTDIR+'/vizualized.png', viz)
     with open(OUTPUTDIR+'/camera2display.csv', mode='w') as f:
-        f.write('camera_y, camera_x, display_y, display_x')
+        f.write('camera_y, camera_x, display_y, display_x\n')
         for (cam_y, cam_x, disp_y, disp_x) in res_list:
             f.write(str(cam_y) + ', ' + str(cam_x) +
                     ', ' + str(disp_y) + ', ' + str(disp_x) + '\n')
 
     print('Done')
-
-    # data = []
-    # xs = np.array(range(CAM_WIDTH))
-    # data.append(go.Scatter(
-    #     x=xs, y=res_x[150, :], mode='lines', name='res1'))
-    # data.append(go.Scatter(x=xs, y=res[200, :, 0], mode='lines', name='res2'))
-
-    # po.plot(data, filename='test.html')
 
 
 def main():
@@ -245,6 +244,8 @@ def main():
     parser_gen.add_argument(
         'step', type=int, help='2 blocks size of graycode [pix]')
     parser_gen.add_argument('output_dir', help='path to output files')
+    parser_gen.add_argument('-gamma', type=float, default=1.0,
+                            help='gamma value for correction (default : 1)')
     parser_gen.set_defaults(func=generate)
 
     parser_dec = subparsers.add_parser(

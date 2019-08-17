@@ -13,7 +13,7 @@ The main advantage of phase-shifting method is that it theoretically can estimat
 ## Implementation in this repository
 
 Although there are some derivative methods, I implemented the 3-step phase-shifting method which is simplest one.
-Also, to obtain the global position of each cycles, I combined graycode patterns and two sets of sinusoidal patterns whose frequencies are different.
+Also, to obtain the global position of each cycles, I combined graycode patterns with two sets of sinusoidal patterns whose frequencies are different.
 The periods of these patterns are defined as follows with user-defined parameter `step` \[pix\].
 
 ||period \[pix\]|
@@ -22,7 +22,7 @@ The periods of these patterns are defined as follows with user-defined parameter
 |Sinusoidal-2 (S2)|`step/2`|
 |Graycode (GC)|`step/2`|
 
-The coordinate of corresponding display pixel for each camera pixels are estimated by the following process.
+For each camera pixels, the coordinate of corresponding display pixel are estimated by the following process.
 
 1. Unwrap the phases from S1 and S2.
     * `arctan2(sqrt(3)*(img1 - img3), 2*img2 - img1 - img3)`
@@ -37,27 +37,61 @@ The coordinate of corresponding display pixel for each camera pixels are estimat
 
 ## How to use
 
-### 1. Generate patterns
+### 1. Calibrate gamma value
 
-You can generate pattern images by the following command.
-
-```sh
-python3 ./phase_shifting.py gen <display_width> <display_height> <step> <output_dir>
-
-# example
-python3 ./phase_shifting.py gen 1920 1080 400 ./patterns
-```
-
-This command saves pattern images (`pat00.png` ~ `patXX.png`) and a config file (`config.xml`) into the specified directory.
-
-### 2. Gamma calibration
-
-Before capture images, you have to set or calibrate gamma values of your display and camera.
+Before generate patterns, you should calibrate gamma values of your display-camera system.
 
 The phase-shifting method requires that the input value to the display and the output value from the camera are linear.
-However, most of imaging and display devices transform their input values based on the gamma value.
+However, most of imaging and display devices transform their input values based on gamma value.
 Thus, if your devices are gamma adjustable, set the gamma value to 1.0.
-Otherwise, you have to correct it by estimating the gamma value or creating look-up table.
+Otherwise, you should calibrate the gamma value using `gamma_correction.py` and correct sinusoidal patterns in advance.
+
+The implementation of `gamma_correction.py` is based on the following paper.
+
+
+
+First, generate graycode patterns and sinusoidal patterns with two arbitrary encoding value (`gamma_p1` and `gamma_p2`).
+
+```sh
+python gamma_correction.py gen <display_width> <display_height> <gamma_p1> <gamma_p2> <output_dir> [-step <graycode_step(default:1)>
+
+# example
+python gamma_correction.py gen 1920 1080 0.75 1.25 ./gamma_correction_patterns
+```
+
+Generated patterns and `config.xml` will be saved in the output directory.
+
+Then, display or project patterns on a planar surface and capture them from the camera.
+
+Finaly, run following command.
+
+```sh
+python gamma_correction.py dec <prefix of captured patterns> <path to config.xml> [-black_thr <black threashold>] [-white_thr <white threashold>]
+
+# example (you can test this command in `sample_data/gamma_correction`)
+python gamma_correction.py dec ./pat ./config.xml -black_thr 30 -white_thr 4
+```
+
+`black_threashold` is a threashold to determine whether a camera pixel captures projected area or not.
+`white_threashold` is a threashold to specify robustness of graycode decoding.
+To avoid decoding error in graycode, increase these numbers.
+
+Estimated `gamma_p` will be displayed on your terminal.
+By preapplying the estimated `gamma_p` to sinusoidal patterns, you will be able to capture linealized images.
+
+### 2. Generate patterns
+
+You can generate pattern images by following command.
+If you calibrated your system and know the `gamma_p`, tell it via `-gamma <gamma_p>` option.
+
+```sh
+python ./phase_shifting.py gen <display_width> <display_height> <step> <output_dir> [-gamma <gamma_p>]
+
+# example
+python phase_shifting.py gen 1920 1080 400 ./patterns -gamma 1.654
+```
+
+This command saves pattern images (`pat00.png` ~ `patXX.png`) and a config file (`config.xml`) into the output directory.
 
 ### 3. Capture displayed patterns
 
@@ -66,22 +100,22 @@ Captured images must be saved as `xxxx00.png` ~ `xxxxXX.png` in a single directo
 
 ### 4. Decode patterns
 
-You can decode captured images by the following command.
+You can decode captured images by following command.
 
 ```sh
-python3 ./phase_shifting.py dec <input_prefix> <config_path> <output_path> [-black_thr BLACK_THR] [-white_thr WHITE_THR] [-filter_size FILTER_SIZE]
+python ./phase_shifting.py dec <input_prefix> <config_path> <output_path> [-black_thr <black threashold>] [-white_thr <white threashold>] [-filter_size <for interpolation of graycode(default:0)>]
 
-# example
-python3 ./phase_shifting.py dec ./captured/pat ./patterns/config.xml ./captured
+# example (you can test this command in `sample_data/object1` and `sample_data/object2`)
+python3 phase_shifting.py dec ./pat ./config.xml ./ -black_thr 20 -white_thr 4 -filter_size 1
 ```
 
-This command saves the following files in the specified directory.
+This command saves following 2 files in the specified directory.
 
 1. Visualized image (`visualized.png`)
     * B : decoded x coordinate of display pixel
     * G : decoded y coordinate of display pixel
     * R : 128 if decoded successfully
-    * The colors are folded back at every 256 pixels
+    * The coordinate values are folded back at every 256 pixels
 2. List of decoded coordinates (`camera2display.csv`)
     * `camera_y, camera_x, display_y, display_x`
 
