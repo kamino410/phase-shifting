@@ -3,19 +3,19 @@ This repository provides an implementation of robust 3-step phase-shifting metho
 
 ![](./sample_data/object2/pat00.png)
 
-## What is phase-shifting method ?
+## What phase-shifting method is?
 
 Phase-shifting method, also called fringe patterns or sinusoidal patterns, is a kind of structured light pattern used for display-camera systems.
 These methods provide algorithms to capture the correspondences from the camera pixels to the display pixels.
 
 Phase-shifting method computes these correspondences by unwrapping phase map from some images which capture displayed sinusoidal patterns.
 
-The main advantage of phase-shifting method is that it theoretically can estimate the corresponding display pixels at subpixel accuracy.
+The main advantage of phase-shifting method is that theoretically can estimate the corresponding display pixels at subpixel accuracy.
 
 ## Implementation in this repository
 
 Although there are some derivative methods, I implemented the 3-step phase-shifting method which is the simplest one.
-Also, to obtain the global position of each cycles, I combined two sets of sinusoidal patterns whose frequencies are different with graycode patterns.
+Also, to obtain the global position of each cycles, I combined graycode patterns and two sets of sinusoidal patterns whose frequencies are different.
 The periods of these patterns are defined as follows with user-defined parameter `step` \[pix\].
 
 ||period \[pix\]|
@@ -24,7 +24,7 @@ The periods of these patterns are defined as follows with user-defined parameter
 |Sinusoidal-2 (S2)|`step/2`|
 |Graycode (GC)|`step/2`|
 
-For each camera pixels, the coordinate of corresponding display pixel are estimated by the following process.
+For each camera pixels, the coordinate of corresponding display pixel are estimated by following process.
 
 1. Unwrap the phases from S1 and S2.
     * `arctan2(sqrt(3)*(img1 - img3), 2*img2 - img1 - img3)`
