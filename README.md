@@ -125,5 +125,6 @@ This command saves following 2 files in the specified directory.
 2. List of decoded coordinates (`camera2display.csv`)
     * `camera_y, camera_x, display_y, display_x`
 
-![](./sample_data/object2/vizualized.png)
+Note : Striped pattern appeares in this figure because I set inproper `gamma_p1` and `gamma_p2` in gamma calibration step and got bad `gamma_p`. I'm goint to update sample data when I have time.
 
+![](./sample_data/object2/vizualized.png)
