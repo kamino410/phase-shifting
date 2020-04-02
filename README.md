@@ -3,10 +3,10 @@ This repository provides an implementation of robust 3-step phase-shifting metho
 
 ![](./sample_data/object2/pat00.png)
 
-## What phase-shifting method is?
+## What is phase-shifting method?
 
-Phase-shifting method, also called fringe patterns or sinusoidal patterns, is a kind of structured light pattern used for display-camera systems.
-These methods provide algorithms to capture the correspondences from the camera pixels to the display pixels.
+The phase-shifting method, also called fringe patterns or sinusoidal patterns, is a kind of structured light pattern used for display-camera systems.
+These methods provide algorithms to measure the correspondences from the camera pixels to the display pixels.
 
 Phase-shifting method computes these correspondences by unwrapping phase map from some images which capture displayed sinusoidal patterns.
 
