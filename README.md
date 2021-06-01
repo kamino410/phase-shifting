@@ -1,5 +1,5 @@
 # phase-shifting
-This repository provides an implementation of robust 3-step phase-shifting method combined with graycode patterns.
+This repository provides an implementation of robust 3-step phase-shifting method combined with the gray codes.
 
 ![](./sample_data/object2/pat00.png)
 
