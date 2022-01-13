@@ -1,5 +1,5 @@
 # phase-shifting
-This repository provides an implementation of robust 3-step phase-shifting method combined with the gray codes.
+This repository provides an implementation of robust 3-step phase-shifting method combined with the graycode patterns.
 
 ![](./sample_data/object2/pat00.png)
 
@@ -8,7 +8,7 @@ This repository provides an implementation of robust 3-step phase-shifting metho
 The phase-shifting method, also called fringe patterns or sinusoidal patterns, is a kind of structured light pattern used for display-camera systems.
 These methods provide algorithms to measure the correspondences from the camera pixels to the display pixels.
 
-Phase-shifting method computes these correspondences by unwrapping phase map from some images which capture displayed sinusoidal patterns.
+The phase-shifting method computes these correspondences by unwrapping a phase map from some images which capture displayed sinusoidal patterns.
 
 The main advantage of phase-shifting method is that theoretically can estimate the corresponding display pixels at subpixel accuracy.
 
@@ -24,24 +24,24 @@ The periods of these patterns are defined as follows with user-defined parameter
 |Sinusoidal-2 (S2)|`step/2`|
 |Graycode (GC)|`step/2`|
 
-For each camera pixels, the coordinate of corresponding display pixel are estimated by following process.
+For each camera pixels, the coordinate of corresponding display pixel are estimated by the following process.
 
 1. Unwrap the phases from S1 and S2.
     * `arctan2(sqrt(3)*(img1 - img3), 2*img2 - img1 - img3)`
 2. Compute the phase difference (it is not a simple subtraction between unwrapped values).
 3. Decode and interpolate the graycode coordinate on the GC map.
     * Interpolation is required for pixels on the border of graycode patterns.
-    * Mask is computed by dilating and eroding (kernel size : `2*filter_size+1`).
-    * The average of decoded coordinates of neighbouring pixels is set (kernel size : `2*filter_size+1`).
-4. Compute the coordinate of the corresponding display pixel.
-    * Phase is the value unwrapped from S1.
+    * Mask is computed by dilating and eroding with user-defined kernel size `2*filter_size+1`.
+    * The average of decoded coordinates of neighbouring pixels is set with the kernel size.
+4. Compute coordinate of the corresponding display pixel.
     * Global position is computed using the phase, phase difference and graycode coordinate complementarily.
+    * Local position is computed from S1.
 
 ## How to use
 
-### 1. Calibrate gamma value
+### 1. Calibrate the gamma value
 
-Before generate patterns, you should calibrate gamma values of your display-camera system.
+Before generate patterns, you should calibrate the gamma values of your display-camera system.
 
 The phase-shifting method requires that the input value to the display and the output value from the camera are linear.
 However, most of imaging and display devices transform their input values based on their gamma value (in general, display : 2.2, camera : 1/2.2).
